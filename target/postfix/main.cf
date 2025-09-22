@@ -100,6 +100,8 @@ smtpd_sasl_security_options = noanonymous
 smtpd_sasl_local_domain = $mydomain
 broken_sasl_auth_clients = yes
 
+relay_domains = $mydomain
+
 # Postfix lookup tables for verifying valid users and managed mail domains:
 # Populated during startup in: scripts/helpers/postfix.sh
 virtual_mailbox_domains = /etc/postfix/vhost
