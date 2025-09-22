@@ -117,6 +117,9 @@ non_smtpd_milters =
 # Header checks for content inspection on receiving
 header_checks = pcre:/etc/postfix/maps/header_checks.pcre
 
+# Bounce and Invalid
+transport_maps = regexp:/etc/postfix/rtransport
+
 # Report bounce to the postmaster
 notify_classes = bounce, delay, policy, protocol, resource, software
 
