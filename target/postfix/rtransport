@@ -1,0 +1,2 @@
+/^bounce\./  mybounce:
+/^invalid\./ discard: discard invalid
