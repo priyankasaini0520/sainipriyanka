@@ -115,6 +115,9 @@ non_smtpd_milters =
 # Header checks for content inspection on receiving
 header_checks = pcre:/etc/postfix/maps/header_checks.pcre
 
+# Report bounce to the postmaster
+notify_classes = bounce, delay, policy, protocol, resource, software
+
 # Remove unwanted headers that reveal our privacy
 smtp_header_checks = pcre:/etc/postfix/maps/sender_header_filter.pcre
 
