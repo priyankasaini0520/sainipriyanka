@@ -14,7 +14,7 @@ def main(argv):
   vmsg = email.message_from_string(raw_message)
   subject = vmsg.get('Subject', '(no subject)')
 
-  mailfrom = vmsg.get('From', 'testqa@fss.qa.campaign.adobe.com')
+  mailfrom = 'testqa@domain'
   mailto = msg_lines[0].split(' ')[1]
 
   with open("/var/tmp/mybounce.log", "a") as file:
@@ -24,20 +24,17 @@ def main(argv):
     file.write(mailto)
     file.write("\n")
 
-  #create email
   mail = MIMEMultipart()
   mail['Subject'] = subject
   mail['To'] = mailto
   mail['From'] = mailfrom
   mail.attach(MIMEText('user unknown', 'plain'))
 
-  #attach original mail
   amsg = MIMEBase('message', 'rfc822')
   amsg.set_payload(raw_message)
   amsg.add_header('Content-Disposition', 'attachment', filename='mail.eml')
   mail.attach(amsg)
-  
-  #send
+
   s = smtplib.SMTP('localhost')
   s.sendmail(mailfrom, mailto, mail.as_string())
   s.quit()
