@@ -88,6 +88,16 @@ RUN dpkg -i /dovecot-fts-xapian-*.deb && rm /dovecot-fts-xapian-*.deb
 COPY target/dovecot/*.inc target/dovecot/*.conf /etc/dovecot/conf.d/
 COPY target/dovecot/dovecot-purge.cron /etc/cron.d/dovecot-purge.disabled
 RUN chmod 0 /etc/cron.d/dovecot-purge.disabled
+WORKDIR /usr/share/dovecot
+
+# hadolint ignore=SC2016,SC2086,SC2069
+RUN <<EOF
+  sedfile -i -e 's/include_try \/usr\/share\/dovecot\/protocols\.d/include_try \/etc\/dovecot\/protocols\.d/g' /etc/dovecot/dovecot.conf
+  sedfile -i -e 's/#mail_plugins = \$mail_plugins/mail_plugins = \$mail_plugins sieve/g' /etc/dovecot/conf.d/15-lda.conf
+  sedfile -i -e 's/^.*lda_mailbox_autocreate.*/lda_mailbox_autocreate = yes/g' /etc/dovecot/conf.d/15-lda.conf
+  sedfile -i -e 's/^.*lda_mailbox_autosubscribe.*/lda_mailbox_autosubscribe = yes/g' /etc/dovecot/conf.d/15-lda.conf
+  sedfile -i -e 's/^.*postmaster_address.*/postmaster_address = '${POSTMASTER_ADDRESS:="postmaster@domain.com"}'/g' /etc/dovecot/conf.d/15-lda.conf
+EOF
 
 # -----------------------------------------------
 # --- Rspamd ------------------------------------
@@ -151,6 +161,12 @@ RUN <<EOF
   chmod 644 /etc/amavis/conf.d/*
 EOF
 
+# overcomplication necessary for CI
+# hadolint ignore=SC2086
+# Enables Pyzor and Razor (with retry logic)
+RUN su - amavis -c "razor-admin -create || true && \
+  (razor-admin -register || true)"
+
 # -----------------------------------------------
 # --- Fail2Ban, DKIM & DMARC --------------------
 # -----------------------------------------------
@@ -189,7 +205,7 @@ RUN echo 'Reason_Message = Message {rejectdefer} due to: {spf}.' >>/etc/postfix-
 COPY target/fetchmail/fetchmailrc /etc/fetchmailrc_general
 COPY target/getmail/getmailrc_general /etc/getmailrc_general
 COPY target/getmail/getmail-service.sh /usr/local/bin/
-COPY target/postfix/main.cf target/postfix/master.cf /etc/postfix/
+COPY target/postfix/main.cf target/postfix/master.cf target/postfix/mybounce.py target/postfix/rtransport /etc/postfix/
 
 # DH parameters for DHE cipher suites, ffdhe4096 is the official standard 4096-bit DH params now part of TLS 1.3
 # This file is for TLS <1.3 handshakes that rely on DHE cipher suites
@@ -278,6 +294,11 @@ RUN chmod +x /usr/local/bin/*
 COPY target/scripts/helpers /usr/local/bin/helpers
 COPY target/scripts/startup/setup.d /usr/local/bin/setup.d
 
+# Fix line endings for all scripts and set permissions
+RUN find /usr/local/bin -name "*.sh" -exec sed -i 's/\r$//' {} \; && chmod +x /usr/local/bin/*
+RUN find /etc -type f \( -name "*.conf" -o -name "*.cf" -o -name "*.py" \) -print0 | xargs -0 -I{} sh -c '[ -w "{}" ] && sed "s/\r$//" "{}" > "{}.tmp" && mv "{}.tmp" "{}" || echo "Skipping or failed: {}"'
+
+RUN touch /var/tmp/mybounce.log && chmod 777 /var/tmp/mybounce.log && chmod 777 /etc/postfix/mybounce.py
 #
 # Final stage focuses only on image config
 #
